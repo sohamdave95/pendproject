@@ -1,7 +1,7 @@
 #woohoo another soham project
 #python file to mujoco sim - sample pid testing
 #uses class to simplify down the math - and to save in the memory which is needed since we use prior error value in memory each time
-
+#this took me 14 hours to get to work, im going insane.
 
 import mujoco 
 import mujoco.viewer
@@ -18,19 +18,19 @@ timestep = 0.0005
 #arrays for mlt plots
 past_time = []
 past_angle = []
-target_line = [180]
+past_base = []
 
 
 # PID values
-kp = 0
-ki = 0
-kd = 0
+kp = 175 #150 or 175
+ki = 0 #0 or 0.5
+kd = 25 #25 or 30
 
 
 
 class pid_loop:
 
-    def setup(self, kp, ki, kd):
+    def __init__(self, kp, ki, kd):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -41,16 +41,14 @@ class pid_loop:
     def pidcalcs(self, currentangle, dt):
         #first thing we do which is read the angle
         error = currentangle - targetangle
-        while error > 180: 
-            error -= 360 #stops the unrestrained joint from still adding values nonstop basically
-        while error < -180: 
-            error += 360
+        
+        error = (error + 180) % 360 - 180 # Forces error between -180 and 180
 
         #tracking derivative and integral terms over time
         self.integral += error*dt
         deriv = (error - self.last_error)/dt
 
-        output = (self.kp*error) + (self.ki*error) + (self.kd*error)
+        output = (self.kp*error) + (self.ki*self.integral) + (self.kd*deriv)
         self.last_error = error
 
         return numpy.clip(output, -1, 1)
@@ -58,31 +56,54 @@ class pid_loop:
 
 pid = pid_loop(kp,ki,kd)
 
+data.joint("pend").qpos[0] = numpy.radians(180) #originally setting this so i can test the sim at an original angle
+mujoco.mj_forward(model, data)
+
 
 with mujoco.viewer.launch_passive(model, data) as viewer:
+
+
+
+
     while viewer.is_running():
+
+
         step_start = time.time()
 
-        current_deg = numpy.degrees(data.joint("pend").qpos[0])
-        signal = pid.compute(current_deg, timestep)
 
-        data.actuator("n20").ctrl[0] = signal
+        base_deg = numpy.degrees(data.joint("arm").qpos[0])
+        currentangle = numpy.degrees(data.joint("pend").qpos[0] % 360)
 
-        mujoco.mj_step(model, data)
-        viewer.sync()
+
 
         elapsed = time.time() - step_start
         if elapsed < timestep:
             time.sleep(timestep - elapsed)
 
+        if base_deg > 350:
+            targetangle = 165
+        elif base_deg < -350:
+            targetangle = 195
+        else:
+            targetangle = 180
+
+        signal = pid.pidcalcs(currentangle, model.opt.timestep)
+        data.actuator("n20").ctrl[0] = signal
+
+
+        mujoco.mj_step(model, data)
+        viewer.sync()
+
         #for matplotlib visualizing - append prior data to the error for graph
         current_time = data.time
         past_time.append(current_time)
-        past_angle.append(current_deg) 
+        past_angle.append(currentangle) 
+        past_base.append(base_deg)
 
     plt.figure(figsize=(10, 5))
     plt.plot(past_time, past_angle, label='pendulum angle (deg)', color='red')
-    plt.plot(past_time, target_line, label='Baseline', color='blue')
+    #plt.plot(past_time, past_base, label="base angle (deg)", color="blue")
+    plt.axhline(y=180, label='Baseline', color='blue', linestyle='--')
 
     plt.title('Furata Pendulum')
     plt.xlabel('Time (s)')
@@ -90,7 +111,3 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     plt.legend()
     plt.grid(True)
     plt.show()
-
-
-
-        

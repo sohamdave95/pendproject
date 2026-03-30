@@ -72,8 +72,11 @@
     </actuator> -->
 
     <actuator>
-        <general name="n20" joint="arm" gear="30" ctrlrange="-1 1" 
+        <general name="n20" joint="arm" gear="30" 
                 gainprm="0.01 0 0" biasprm="0 -0.01 -0.001"/>
+
+        <!-- <general name="n20" joint="arm" gear="30" ctrlrange="-1 1" 
+                gainprm="0.01 0 0" biasprm="0 -0.01 -0.001"/> -->
     </actuator>
 
     <sensor>
