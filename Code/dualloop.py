@@ -1,77 +1,108 @@
-import mujoco
+#woohoo another soham project
+#python file to mujoco sim - sample pid testing
+# this simulation took like - 20ish hours or more to get working :|
+
+import mujoco 
 import mujoco.viewer
 import matplotlib.pyplot as plt
 import numpy as np
-
+import time
 
 model = mujoco.MjModel.from_xml_path("furatamjcf.xml")
 data = mujoco.MjData(model)
-target_angle = 180
 
-past_time, past_base, past_pend = [], [], []
+bias = 0
 
+#creating a controller class for easiness
+class PID:
+    def __init__ (self, kp, ki, kd): #initializing these parameters (pid values) since this will apply to both control loops
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.integral = 0
+        self.last_error = 0
+        self.last_time = 0
+
+    def calculation(self, target, current_deg, current_time, modulus): # main calculation class, basically just uses init values and produces an
+        if self.last_time == 0:
+            self.last_time = current_time
+        
+
+        deltatime = current_time - self.last_time
+        if modulus == True:
+            error = (target - current_deg + 180) % 360 - 180
+        else:
+            error = (target - current_deg)
+
+        if deltatime > 0:
+           derivative = (error - self.last_error)/deltatime
+        else:
+            derivative = 0
+
+        
+        self.integral += error*deltatime
+       
+
+        output = (self.kp * error) + (self.ki * self.integral) + (self.kd*derivative) + bias
+
+        self.last_error = error
+        self.last_time = current_time
+
+        return output
 
 data.joint("pend").qpos[0] = np.radians(165)
 
-kp = 18 #25
-ki = 0
-kd = 0.8 #5
-bias = 0
+arm_pid = PID(kp = 1, ki = 0.025, kd = 0.15) #working pid values
+pend_pid = PID(kp = 50, ki = 0.40, kd = 0.35)
 
-last_time = 0
-last_error = 0
+# an oscillatory behaviour will remain here, since this system is basically oscillating between 2 events out of phase
 
+past_time, past_pend, past_arm = [], [], []
 
-def pidpend():
-
-
-    global last_time, last_error, current_velocity
-    current_time = data.time
-    current_angle = np.degrees(data.joint("pend").qpos[0]) % 360
-    current_velocity = abs(data.joint("arm").qvel[0])
-
-    delta_time = current_time - last_time
-
-
-    error = (target_angle - current_angle)
-
-
-    if delta_time > 1:
-        derivative = (error - last_error)/delta_time
-    else:
-        derivative = 0
-
-    output = (error*kp) + (derivative*kd)
-
-
-    data.actuator("n20").ctrl[0] = np.clip(-output, -1, 1)
-
-
-    last_time = current_time
-    last_error = error
-
-    past_pend.append(current_angle)
-    past_time.append(current_time)
+steps = 0
 
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
 
-        pidpend()
+
+        current_time = data.time
+
+        current_pend_angle = np.degrees(data.joint("pend").qpos[0] % 360)
+        current_arm_angle = np.degrees(data.joint("arm").qpos[0])
+
+        
+        
+        pend_output = pend_pid.calculation(180, current_pend_angle, current_time, True)
+        arm_output = arm_pid.calculation(0, current_arm_angle, current_time, False)
+        data.actuator("n20").ctrl[0] = np.clip(-(arm_output + pend_output), -1, 1)
+
         mujoco.mj_step(model, data)
         viewer.sync()
-        print(current_velocity)
+
+        steps += 1
+
+        if steps % 10 == 0:
+            steps = 0
+            past_time.append(current_time)
+            past_pend.append(current_pend_angle)
+            past_arm.append(current_arm_angle)
 
 
 
-    plt.figure(figsize=(10, 5))
-    #plt.plot(past_time, past_base, label='pendulum angle (deg)', color='red')
-    plt.plot(past_time, past_pend, label="base angle (deg)", color="blue")
-    plt.axhline(y=180, label='Baseline', color='blue', linestyle='--')
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
-    plt.title('Furata Pendulum')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Angle (deg)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+ax1.plot(past_time, past_pend, color="red", label="Pendulum Angle")
+ax1.axhline(y=180, color='black', linestyle='--', label="Target")
+ax1.set_ylabel("Degrees")
+ax1.legend()
+ax1.grid(True)
 
+ax2.plot(past_time, past_arm, color="blue", label="Arm Position")
+ax2.axhline(y=0, color='black', linestyle='--', label="Target")
+ax2.set_ylabel("Degrees")
+ax2.set_xlabel("Time")
+ax2.legend()
+ax2.grid(True)
+
+plt.tight_layout()
+plt.show()
