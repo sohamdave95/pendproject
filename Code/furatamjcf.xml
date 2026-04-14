@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!-- woohoo soham's project (mujoco sim boutta be dope fr)-->
 
 
@@ -79,4 +80,87 @@
     </sensor>
 
 
+=======
+<!-- woohoo soham's project (mujoco sim boutta be dope fr)-->
+
+
+<mujoco model="Sohams Furuta Pendulum">
+    <option timestep="0.0005" iterations="150" solver="Newton" tolerance="1e-10"/>
+    <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
+
+
+    
+    <asset>
+        <mesh name="base" file="base (1).stl" scale="0.001 0.001 0.001"/>
+        <mesh name="legs" file="legs.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="n20" file="n20.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="n20bracket" file="n20bracket.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="horiarm" file="horiarm.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="as5600bracket" file="as5600bracket.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="as5600" file="as5600.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="pend" file="pend.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="bearingbracket" file="bearingbracket.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="bearing" file="bearing.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="washer" file="washer.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="magnetbracket" file="magnetbracket.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="pendmass" file="pendmassextra.stl" scale="0.001 0.001 0.001"/>
+
+        <texture name="skybox" type="skybox" builtin="gradient" rgb1=".2 .3 .4" rgb2="0 0 0" width="512" height="512"/>
+    
+        <texture name="floor_tex" type="2d" builtin="checker" rgb1=".1 .1 .1" rgb2=".2 .2 .2" width="300" height="300"/>
+        <material name="floor_mat" texture="floor_tex" texrepeat="5 5" specular="0" shininess="0"/>
+
+
+
+    </asset>
+
+    <worldbody>
+
+   
+        <geom name="floor" type="plane" size="0 0 0.1" material="floor_mat" pos="0 0 0"/>
+    
+        <light directional="true" diffuse=".8 .8 .8" pos="0 0 5" dir="0 0 -1"/>
+    
+        <body name="base" pos="0 0 0">
+            <geom type="mesh" mesh="base" rgba=".3 .3 .3 1"/>
+            <geom type="mesh" mesh="legs" rgba=".3 .3 .3 1"/>
+            <geom type="mesh" mesh="n20bracket" rgba=".3 .3 .3 1"/>
+            <geom type="mesh" mesh="n20" rgba=".3 .3 .3 1"/>
+
+            <body name="arm" pos="0 0 0">
+                <joint name="arm" type="hinge" axis="0 0 1" frictionloss="0.1" damping="0.02" limited="true" range="-600 600"/>
+                <geom type="mesh" mesh="horiarm" rgba=".3 .3 .3 1"/>
+                <geom type="mesh" mesh="as5600bracket" rgba=".3 .3 .3 1"/>
+                <geom type="mesh" mesh="as5600" rgba=".3 .3 .3 1"/>
+                <geom type="mesh" mesh="bearing" rgba=".3 .3 .3 1"/>
+                <geom type="mesh" mesh="washer" rgba=".3 .3 .3 1"/>
+                <geom type="mesh" mesh="bearingbracket" rgba=".3 .3 .3 1"/>
+                <geom type="mesh" mesh="magnetbracket" rgba=".3 .3 .3 1"/>
+
+                <body name="pole" pos="0 0.0476 0.1785"> 
+                    <joint name="pend" type="hinge" axis="0 1 0" damping="0.005"/>
+               
+                    <geom type="mesh" mesh="pend" pos="0 -0.0476 -0.1785" rgba=".8 0 0 1" density="1300"/>
+                    <geom type="mesh" mesh="pendmass" rgba=".8 0 0 1" pos="0 -0.0476 -0.1785" density="1300" euler="90 0 0"/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+
+
+    <actuator>
+    
+        <motor name="n20" joint="arm" gear="1"/>
+    </actuator>
+
+
+    <sensor>
+        <jointpos name="motor_position" joint="arm" noise="0.0015"/>
+        <jointpos name="pend_position" joint="pend" noise="0.0015"/> 
+
+    </sensor>
+
+
+>>>>>>> 65713b8fda0538935e57faf417918821e9b9d1c0
 </mujoco>
